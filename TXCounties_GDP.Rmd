@@ -1,0 +1,68 @@
+---
+title: "Texas County GDP"
+author: "Shannon Carter"
+date: "1/23/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE)
+knitr::opts_knit$set(root.dir = "/Users/shannoncarter/Documents/JanuaryAdvisors/GDP_Counties")
+
+```
+
+
+```{r prep workspace}
+## Set working directory and clear memory
+setwd("/Users/shannoncarter/Documents/JanuaryAdvisors/GDP_Counties")
+rm(list = ls(all = T))
+
+## Load required packages
+library(tidyverse)
+library(tigris)
+
+## Load data
+tx <- read.csv("TXCounty_GDP.csv", header = T)
+```
+
+```{r}
+head(tx)
+```
+
+```{r}
+# trim to raw gdp only
+tx_gdp <- tx[,1:5]
+
+# gather by year
+tx_gdp_long <- gather(tx_gdp, key = "year", value = "gdp", -county)
+tx_gdp_long <- separate(tx_gdp_long, year, into = c(NA, "year"), sep = "_")
+
+# change data types
+tx_gdp_long$year <- as.numeric(tx_gdp_long$year)
+tx_gdp_long$gdp <- gsub(",", "", tx_gdp_long$gdp)
+tx_gdp_long$gdp <- as.numeric(tx_gdp_long$gdp)
+head(tx_gdp_long)
+```
+
+```{r}
+ggplot(tx_gdp_long, aes(x = year, y = gdp, color = county)) + theme_bw() +
+  geom_point() +
+  geom_line() +
+  theme(legend.position = "none")
+```
+
+```{r}
+# add a delta gdp column
+tx_gdp_delta <- tx_gdp_long %>% 
+  filter(year != 2016 & year != 2017) %>% 
+  spread(year, gdp)
+
+tx_gdp_delta$delta_gdp <- (tx_gdp_delta[,3] - tx_gdp_delta[,2])/(tx_gdp_delta[,2])
+
+ggplot(tx_gdp_delta, aes(x = delta_gdp, y = county)) +
+  geom_point() +
+  geom_vline(xintercept = 0, color = 'gray', linetype = 'dashed') +
+  theme_bw()
+```
+
