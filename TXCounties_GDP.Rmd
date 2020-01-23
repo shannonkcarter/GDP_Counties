@@ -21,9 +21,18 @@ rm(list = ls(all = T))
 ## Load required packages
 library(tidyverse)
 library(tigris)
-
+library(extrafont)
 ## Load data
 tx <- read.csv("TXCounty_GDP.csv", header = T)
+
+## Plotting style elements
+mytheme <- theme_bw(base_size = 15, base_family = "Franklin Gothic Medium") +
+  theme(legend.text = element_text(size = 10),
+        legend.title = element_text(size = 11),
+        text = element_text(size = 14),     
+        axis.title = element_text(size = 12),
+        axis.text  = element_text(size = 8, family = "Consolas"),
+        panel.grid = element_blank())
 ```
 
 ```{r}
@@ -60,9 +69,12 @@ tx_gdp_delta <- tx_gdp_long %>%
 
 tx_gdp_delta$delta_gdp <- (tx_gdp_delta[,3] - tx_gdp_delta[,2])/(tx_gdp_delta[,2])
 
-ggplot(tx_gdp_delta, aes(x = delta_gdp, y = county)) +
-  geom_point() +
-  geom_vline(xintercept = 0, color = 'gray', linetype = 'dashed') +
-  theme_bw()
+ggplot(tx_gdp_delta, aes(x = reorder(county, delta_gdp), y = delta_gdp)) +
+  geom_point(color = 'orange') +
+  geom_hline(yintercept = 0, color = 'lightgray', linetype = 2) +
+  mytheme +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0)) +
+  labs(x = "county",
+       y = "proportional change in GDP from 2015-2018")
 ```
 
