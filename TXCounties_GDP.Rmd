@@ -30,6 +30,7 @@ library(leaflet)
 
 ## Load data
 tx <- read.csv("TXCounty_GDP.csv", header = T)
+gdp_ind <- read.csv("gdp_industry_clean.csv", header = T)
 
 ## Plotting style elements
 mytheme <- theme_bw(base_size = 15, base_family = "Franklin Gothic Medium") +
@@ -43,7 +44,10 @@ mytheme <- theme_bw(base_size = 15, base_family = "Franklin Gothic Medium") +
 
 ```{r}
 head(tx)
+head(gdp_ind)
 ```
+
+# Clean TX county GDP summaries
 
 ```{r}
 # trim to raw gdp only
@@ -59,6 +63,42 @@ tx_gdp_long$gdp <- gsub(",", "", tx_gdp_long$gdp)
 tx_gdp_long$gdp <- as.numeric(tx_gdp_long$gdp)
 head(tx_gdp_long)
 ```
+
+# Clean TX county GDP by industry
+
+```{r}
+# Remove all rows containing "addendum"
+gdp_ind[!grepl("addendum", gdp_ind$Description),]
+
+# Make all missing values NA
+gdp_ind <- gdp_ind %>% 
+  dplyr::na_if("(NA)") %>% 
+  dplyr::na_if("(D)")
+
+# Trim ", TX" out of county name
+gdp_ind <- separate(gdp_ind, "county", into = c("county", NA), sep = ",")
+
+# Select only private industries and give shorthand name for each
+gdp_ind <- gdp_ind %>% 
+  filter(industry_code == c(3, 6, 10:12, 34:36, 45, 50, 59, 68, 75, 82)) %>% 
+  mutate(industry_short = case_when(
+    industry_code == 3 ~ "agriculture",
+    industry_code == 6 ~ 'mining',
+    industry_code == 10 ~ 'utilities',
+    industry_code == 11 ~ 'construction',
+    industry_code == 12 ~ 'manufacturing',
+    industry_code == 34 ~ 'wholesale',
+    industry_code == 35 ~ 'retail',
+    industry_code == 36 ~ 'transportation',
+    industry_code == 45 ~ 'information',
+    industry_code == 50 ~ 'finance_etc',
+    industry_code == 59 ~ 'business_servs',
+    industry_code == 68 ~ 'education',
+    industry_code == 75 ~ 'arts',
+    industry_code == 82 ~ 'other'))
+
+```
+
 
 ```{r}
 ggplot(tx_gdp_long, aes(x = year, y = gdp, color = county)) + mytheme +
