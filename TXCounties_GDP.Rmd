@@ -9,8 +9,6 @@ output: html_document
 
 knitr::opts_chunk$set(echo = TRUE, warning = FALSE)
 knitr::opts_knit$set(root.dir = "/Users/shannoncarter/Documents/JanuaryAdvisors/GDP_Counties")
-
-
 ```
 
 
@@ -29,8 +27,8 @@ library(magrittr)
 library(leaflet)
 
 ## Load data
-tx <- read.csv("TXCounty_GDP.csv", header = T)
-gdp_ind <- read.csv("gdp_industry_clean.csv", header = T)
+gdp_total <- read.csv("TXCounty_GDP.csv", header = T)
+gdp_industry <- read.csv("gdp_industry_clean.csv", header = T)
 
 ## Plotting style elements
 mytheme <- theme_bw(base_size = 15, base_family = "Franklin Gothic Medium") +
@@ -43,35 +41,35 @@ mytheme <- theme_bw(base_size = 15, base_family = "Franklin Gothic Medium") +
 ```
 
 ```{r}
-head(tx)
-head(gdp_ind)
+head(gdp_total)
+head(gdp_industry)
 ```
 
 # Clean TX county GDP summaries
 
 ```{r}
 # trim to raw gdp only
-tx_gdp <- tx[,1:5]
+gdp_tot <- gdp_total[,1:5]
 
 # gather by year
-tx_gdp_long <- gather(tx_gdp, key = "year", value = "gdp", -county)
-tx_gdp_long <- separate(tx_gdp_long, year, into = c(NA, "year"), sep = "_")
+gdp_tot_long <- gather(gdp_tot, key = "year", value = "gdp", -county)
+gdp_tot_long <- separate(gdp_tot_long, year, into = c(NA, "year"), sep = "_")
 
 # change data types
-tx_gdp_long$year <- as.numeric(tx_gdp_long$year)
-tx_gdp_long$gdp <- gsub(",", "", tx_gdp_long$gdp)
-tx_gdp_long$gdp <- as.numeric(tx_gdp_long$gdp)
-head(tx_gdp_long)
+gdp_tot_long$year <- as.numeric(gdp_tot_long$year)
+gdp_tot_long$gdp <- gsub(",", "", gdp_tot_long$gdp)
+gdp_tot_long$gdp <- as.numeric(gdp_tot_long$gdp)
+head(gdp_tot_long)
 ```
 
 # Clean TX county GDP by industry
 
 ```{r}
 # Remove all rows containing "addendum"
-gdp_ind[!grepl("addendum", gdp_ind$Description),]
+gdp_industry[!grepl("addendum", gdp_industry$Description),]
 
 # Make all missing values NA
-gdp_ind <- gdp_ind %>% 
+gdp_ind <- gdp_industry %>% 
   dplyr::na_if("(NA)") %>% 
   dplyr::na_if("(D)")
 
@@ -97,11 +95,15 @@ gdp_ind <- gdp_ind %>%
     industry_code == 75 ~ 'arts',
     industry_code == 82 ~ 'other'))
 
+# Gather by year
+gdp_ind_long <- gather(gdp_ind, key = "year", value = "gdp", -c(county, industry_code, industry, industry_short))
+gdp_ind_long <- separate(gdp_ind_long, year, into = c(NA, "year"), sep = "Y")
+
 ```
 
 
 ```{r}
-ggplot(tx_gdp_long, aes(x = year, y = gdp, color = county)) + mytheme +
+ggplot(gdp_tot_long, aes(x = year, y = gdp, color = county)) + mytheme +
   geom_point() +
   geom_line() +
   theme(legend.position = "none")
