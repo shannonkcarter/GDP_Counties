@@ -3,12 +3,15 @@ title: "Texas County GDP"
 author: "Shannon Carter"
 date: "1/23/2020"
 output: html_document
+editor_options: 
+  chunk_output_type: console
 ---
 
 ```{r setup, include=FALSE}
 
 knitr::opts_chunk$set(echo = TRUE, warning = FALSE)
 knitr::opts_knit$set(root.dir = "/Users/shannoncarter/Documents/JanuaryAdvisors/GDP_Counties")
+
 ```
 
 ### Prep Workspace
@@ -61,6 +64,36 @@ gdp_tot_long$gdp <- as.numeric(gdp_tot_long$gdp)
 
 ```
 
+
+### GDP time series by county
+
+```{r}
+ggplot(gdp_tot_long, aes(x = year, y = gdp, color = county)) + mytheme +
+  geom_point() +
+  geom_line() +
+  theme(legend.position = "none")
+```
+
+### Delta GDP by county
+
+```{r}
+# add a delta gdp column
+tx_gdp_delta <- gdp_tot_long %>% 
+  filter(year != 2016 & year != 2017) %>% 
+  spread(year, gdp)
+
+tx_gdp_delta$delta_gdp <- (tx_gdp_delta[,3] - tx_gdp_delta[,2])/(tx_gdp_delta[,2])
+
+ggplot(tx_gdp_delta, aes(x = reorder(county, delta_gdp), y = delta_gdp)) +
+  geom_point(color = 'orange') +
+  geom_hline(yintercept = 0, color = 'lightgray', linetype = 2) +
+  mytheme +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0)) +
+  labs(x = "county",
+       y = "%ΔGDP",
+       title = "Proportional change in GDP from 2015-2018 for TX counties")
+```
+
 ### Clean TX county GDP by industry
 
 ```{r}
@@ -100,34 +133,6 @@ gdp_ind_long <- separate(gdp_ind_long, year, into = c(NA, "year"), sep = "Y")
 
 ```
 
-### GDP time series by county
-
-```{r}
-ggplot(gdp_tot_long, aes(x = year, y = gdp, color = county)) + mytheme +
-  geom_point() +
-  geom_line() +
-  theme(legend.position = "none")
-```
-
-### Delta GDP by county
-
-```{r}
-# add a delta gdp column
-tx_gdp_delta <- gdp_tot_long %>% 
-  filter(year != 2016 & year != 2017) %>% 
-  spread(year, gdp)
-
-tx_gdp_delta$delta_gdp <- (tx_gdp_delta[,3] - tx_gdp_delta[,2])/(tx_gdp_delta[,2])
-
-ggplot(tx_gdp_delta, aes(x = reorder(county, delta_gdp), y = delta_gdp)) +
-  geom_point(color = 'orange') +
-  geom_hline(yintercept = 0, color = 'lightgray', linetype = 2) +
-  mytheme +
-  theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0)) +
-  labs(x = "county",
-       y = "%ΔGDP",
-       title = "Proportional change in GDP from 2015-2018 for TX counties")
-```
 
 ### Mapping 2018 GDP by county and industry
 
@@ -139,29 +144,29 @@ gdp_leaf <- select(gdp_ind,
              industry = industry_short,
              gdp = Y2018)
 gdp_leaf$gdp <- as.numeric(gdp_leaf$gdp)
-gdp_leaf1 <- spread(gdp_leaf, industry, gdp)
+gdp_leaf <- spread(gdp_leaf, industry, gdp)
+gdp_leaf <- filter(gdp_leaf, county != "Texas")
 
 # Get shape files for TX counties from tigris
 shape <- counties("Texas", cb = T)
-shape1 <- fortify(shape)
 
 # Join to shape file to df
 df <- geo_join(shape, gdp_leaf, "NAME", "county")
 
 # adding data to fill
-palette <- colorBin("Blues", bins = 5, domain = df$gdp, na.color = "#f0f9e8")
+palette <- colorBin("Reds", bins = 5, domain = df$arts, na.color = "#f0f9e8")
 
 leaflet() %>% 
   addProviderTiles("CartoDB.Positron") %>% 
-  setView(-99.9, 31.97, zoom = 7) %>% 
+  setView(-99.9, 31.97, zoom = 5) %>% 
   addPolygons(
     data = df,
     color = 'white',
     weight = 1,
-    fillColor = palette(df$gdp),
+    fillColor = palette(df$arts),
     fillOpacity = 0.7,
-    popup = paste0(df$county, "</br>", "GDP:", df$gdp)) %>% 
-  addMarkers(data = )
+    popup = paste0(df$county, "</br>", "GDP:", df$arts)) %>% 
+  addProviderTiles(df$education, group = "Education")
 ```
 
 ```{r}
