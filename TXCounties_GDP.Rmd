@@ -14,6 +14,7 @@ knitr::opts_knit$set(root.dir = "/Users/shannoncarter/Documents/JanuaryAdvisors/
 ### Prep Workspace
 
 ```{r prep workspace, warning = F, message = F}
+
 ## Set working directory and clear memory
 setwd("/Users/shannoncarter/Documents/JanuaryAdvisors/GDP_Counties")
 rm(list = ls(all = T))
@@ -57,7 +58,7 @@ gdp_tot_long <- separate(gdp_tot_long, year, into = c(NA, "year"), sep = "_")
 gdp_tot_long$year <- as.numeric(gdp_tot_long$year)
 gdp_tot_long$gdp <- gsub(",", "", gdp_tot_long$gdp)
 gdp_tot_long$gdp <- as.numeric(gdp_tot_long$gdp)
-head(gdp_tot_long)
+
 ```
 
 ### Clean TX county GDP by industry
@@ -76,7 +77,7 @@ gdp_ind <- separate(gdp_ind, "county", into = c("county", NA), sep = ",")
 
 # Select only private industries and give shorthand name for each
 gdp_ind <- gdp_ind %>% 
-  filter(industry_code == c(3, 6, 10:12, 34:36, 45, 50, 59, 68, 75, 82)) %>% 
+  filter(industry_code %in% c(3, 6, 10:12, 34:36, 45, 50, 59, 68, 75, 82)) %>% 
   mutate(industry_short = case_when(
     industry_code == 3  ~ "agriculture",
     industry_code == 6  ~ 'mining',
@@ -138,6 +139,7 @@ gdp_leaf <- select(gdp_ind,
              industry = industry_short,
              gdp = Y2018)
 gdp_leaf$gdp <- as.numeric(gdp_leaf$gdp)
+gdp_leaf1 <- spread(gdp_leaf, industry, gdp)
 
 # Get shape files for TX counties from tigris
 shape <- counties("Texas", cb = T)
@@ -158,8 +160,8 @@ leaflet() %>%
     weight = 1,
     fillColor = palette(df$gdp),
     fillOpacity = 0.7,
-    popup = paste0(df$county, "</br>", "GDP:", df$gdp)
-  )
+    popup = paste0(df$county, "</br>", "GDP:", df$gdp)) %>% 
+  addMarkers(data = )
 ```
 
 ```{r}
