@@ -165,8 +165,19 @@ leaflet() %>%
     weight = 1,
     fillColor = palette(df$arts),
     fillOpacity = 0.7,
-    popup = paste0(df$county, "</br>", "GDP:", df$arts)) %>% 
-  addProviderTiles(df$education, group = "Education")
+    popup = paste0(df$county, "</br>", "GDP:", df$arts),
+    group = "Arts") %>% 
+  addPolygons(
+    data = df,
+    color = 'white',
+    weight = 1,
+    fillColor = palette(df$education),
+    fillOpacity = 0.7,
+    popup = paste0(df$county, "</br>", "GDP:", df$education),
+    group = "Education") %>% 
+  addLayersControl(
+    overlayGroups = c("Arts", "Education"),
+    options = layersControlOptions(collapsed = F))
 ```
 
 ```{r}
@@ -191,6 +202,7 @@ plot_usmap(data = tx_gdp_county, values = "delta_gdp") +
   scale_fill_continuous() + 
   theme(legend.position = "right")
 ```
+
 ```{r}
 leaflet(options = leafletOptions(minZoom = 0, maxZoom = 18))
 mapStates = maps::map("state", fill = TRUE, plot = FALSE)
