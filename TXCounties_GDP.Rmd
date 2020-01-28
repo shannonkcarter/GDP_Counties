@@ -11,8 +11,9 @@ knitr::opts_chunk$set(echo = TRUE, warning = FALSE)
 knitr::opts_knit$set(root.dir = "/Users/shannoncarter/Documents/JanuaryAdvisors/GDP_Counties")
 ```
 
+### Prep Workspace
 
-```{r prep workspace}
+```{r prep workspace, warning = F, message = F}
 ## Set working directory and clear memory
 setwd("/Users/shannoncarter/Documents/JanuaryAdvisors/GDP_Counties")
 rm(list = ls(all = T))
@@ -38,14 +39,11 @@ mytheme <- theme_bw(base_size = 15, base_family = "Franklin Gothic Medium") +
         axis.title = element_text(size = 12),
         axis.text  = element_text(size = 8, family = "Consolas"),
         panel.grid = element_blank())
+
+#options(tigris_class = 'sf', tigris_)
 ```
 
-```{r}
-head(gdp_total)
-head(gdp_industry)
-```
-
-# Clean TX county GDP summaries
+### Clean TX county GDP summaries
 
 ```{r}
 # trim to raw gdp only
@@ -62,7 +60,7 @@ gdp_tot_long$gdp <- as.numeric(gdp_tot_long$gdp)
 head(gdp_tot_long)
 ```
 
-# Clean TX county GDP by industry
+### Clean TX county GDP by industry
 
 ```{r}
 # Remove all rows containing "addendum"
@@ -80,8 +78,8 @@ gdp_ind <- separate(gdp_ind, "county", into = c("county", NA), sep = ",")
 gdp_ind <- gdp_ind %>% 
   filter(industry_code == c(3, 6, 10:12, 34:36, 45, 50, 59, 68, 75, 82)) %>% 
   mutate(industry_short = case_when(
-    industry_code == 3 ~ "agriculture",
-    industry_code == 6 ~ 'mining',
+    industry_code == 3  ~ "agriculture",
+    industry_code == 6  ~ 'mining',
     industry_code == 10 ~ 'utilities',
     industry_code == 11 ~ 'construction',
     industry_code == 12 ~ 'manufacturing',
@@ -101,6 +99,7 @@ gdp_ind_long <- separate(gdp_ind_long, year, into = c(NA, "year"), sep = "Y")
 
 ```
 
+### GDP time series by county
 
 ```{r}
 ggplot(gdp_tot_long, aes(x = year, y = gdp, color = county)) + mytheme +
@@ -109,9 +108,11 @@ ggplot(gdp_tot_long, aes(x = year, y = gdp, color = county)) + mytheme +
   theme(legend.position = "none")
 ```
 
+### Delta GDP by county
+
 ```{r}
 # add a delta gdp column
-tx_gdp_delta <- tx_gdp_long %>% 
+tx_gdp_delta <- gdp_tot_long %>% 
   filter(year != 2016 & year != 2017) %>% 
   spread(year, gdp)
 
@@ -123,7 +124,42 @@ ggplot(tx_gdp_delta, aes(x = reorder(county, delta_gdp), y = delta_gdp)) +
   mytheme +
   theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0)) +
   labs(x = "county",
-       y = "proportional change in GDP from 2015-2018")
+       y = "%ΔGDP",
+       title = "Proportional change in GDP from 2015-2018 for TX counties")
+```
+
+### Mapping 2018 GDP by county and industry
+
+```{r}
+
+# Trim data to county, industry, GDP, filter to 2018
+gdp_leaf <- select(gdp_ind, 
+             county = county,
+             industry = industry_short,
+             gdp = Y2018)
+gdp_leaf$gdp <- as.numeric(gdp_leaf$gdp)
+
+# Get shape files for TX counties from tigris
+shape <- counties("Texas", cb = T)
+shape1 <- fortify(shape)
+
+# Join to shape file to df
+df <- geo_join(shape, gdp_leaf, "NAME", "county")
+
+# adding data to fill
+palette <- colorBin("Blues", bins = 5, domain = df$gdp, na.color = "#f0f9e8")
+
+leaflet() %>% 
+  addProviderTiles("CartoDB.Positron") %>% 
+  setView(-99.9, 31.97, zoom = 7) %>% 
+  addPolygons(
+    data = df,
+    color = 'white',
+    weight = 1,
+    fillColor = palette(df$gdp),
+    fillOpacity = 0.7,
+    popup = paste0(df$county, "</br>", "GDP:", df$gdp)
+  )
 ```
 
 ```{r}
